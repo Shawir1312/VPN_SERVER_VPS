@@ -93,18 +93,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
 
 // ======================== FUNGSI ========================
 function run_system_checks(): array {
-    $wgOk = !empty(shell_exec('which wg 2>/dev/null'));
+    // Cek WireGuard — tanpa shell_exec, cukup cek file exists
+    $wgOk   = file_exists('/usr/bin/wg') || file_exists('/usr/local/bin/wg');
     $pubkey = '';
-    if ($wgOk && file_exists('/etc/wireguard/server_public.key')) {
+    if (file_exists('/etc/wireguard/server_public.key')) {
         $pubkey = trim(file_get_contents('/etc/wireguard/server_public.key'));
     }
 
-    // Deteksi IP publik
+    // Deteksi IP publik dari koneksi ke luar (tanpa shell)
     $ip = '';
-    $ifaces = shell_exec("ip a | grep 'inet ' | grep -v '127.0.0.1' | grep -v '10.66.66'");
-    if (preg_match('/inet (\d+\.\d+\.\d+\.\d+)/', $ifaces ?? '', $m)) {
-        $ip = $m[1];
-    }
+    try {
+        $sock = @fsockopen('8.8.8.8', 80, $errno, $errstr, 2);
+        if ($sock) {
+            $ip = stream_socket_get_name($sock, false);
+            fclose($sock);
+            $ip = explode(':', $ip)[0]; // ambil IP saja
+        }
+    } catch (Exception $e) { $ip = ''; }
 
     return [
         'php_version' => version_compare(PHP_VERSION, '7.4.0', '>='),
