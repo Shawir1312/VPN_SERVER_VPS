@@ -99,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
             $step    = 3;
             $success = false;
         }
+    }
 }
 
 // ======================== FUNGSI ========================
