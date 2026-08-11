@@ -115,6 +115,7 @@ include __DIR__ . '/includes/layout_header.php';
           <td>
             <a href="pages/router_detail.php?id=<?= $r['id'] ?>" class="btn btn-secondary btn-sm">🔍 Detail</a>
             <a href="view_config.php?id=<?= $r['id'] ?>" class="btn btn-secondary btn-sm">📄 Config</a>
+            <a href="edit_router.php?id=<?= $r['id'] ?>" class="btn btn-secondary btn-sm">✏️ Edit</a>
             <a href="delete_router.php?id=<?= $r['id'] ?>"
                class="btn btn-danger btn-sm"
                onclick="return confirm('Hapus router <?= htmlspecialchars(addslashes($r['name'])) ?>?\nTunnel akan diputus dari server.')">🗑</a>

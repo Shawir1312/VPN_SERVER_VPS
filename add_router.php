@@ -9,8 +9,9 @@ $newRouterId  = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name     = trim($_POST['name']     ?? '');
-    $location = trim($_POST['location'] ?? '');
-    $notes    = trim($_POST['notes']    ?? '');
+    $location    = trim($_POST['location'] ?? '');
+    $lan_subnets = trim($_POST['lan_subnets'] ?? '');
+    $notes       = trim($_POST['notes']    ?? '');
 
     if ($name === '') {
         $error = 'Nama router wajib diisi.';
@@ -19,12 +20,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $keypair   = generate_wg_keypair();
             $tunnelIp  = next_available_tunnel_ip($pdo);
 
-            add_peer_to_server($keypair['public'], $tunnelIp);
+            $allowedIps = $tunnelIp . '/32';
+            if ($lan_subnets !== '') {
+                // Bersihkan spasi berlebih
+                $cleaned_lan = implode(',', array_map('trim', explode(',', $lan_subnets)));
+                $allowedIps .= ',' . $cleaned_lan;
+            }
+
+            add_peer_to_server($keypair['public'], $allowedIps);
 
             $stmt = $pdo->prepare(
-                'INSERT INTO routers (name, location, public_key, private_key, tunnel_ip, notes) VALUES (?, ?, ?, ?, ?, ?)'
+                'INSERT INTO routers (name, location, public_key, private_key, tunnel_ip, lan_subnets, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
             );
-            $stmt->execute([$name, $location, $keypair['public'], $keypair['private'], $tunnelIp, $notes]);
+            $stmt->execute([$name, $location, $keypair['public'], $keypair['private'], $tunnelIp, $lan_subnets, $notes]);
             $newRouterId = $pdo->lastInsertId();
 
             write_log($pdo, 'tambah-router', (int) $newRouterId, $name,
@@ -79,6 +87,14 @@ include __DIR__ . '/includes/layout_header.php';
           <input type="text" name="location" class="form-control"
                  placeholder="Contoh: Jailolo, Halmahera Barat"
                  value="<?= htmlspecialchars($_POST['location'] ?? '') ?>">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">IP Lokal / LAN Subnet (opsional)</label>
+          <input type="text" name="lan_subnets" class="form-control mono"
+                 placeholder="Contoh: 192.168.9.0/24, 192.168.10.0/24"
+                 value="<?= htmlspecialchars($_POST['lan_subnets'] ?? '') ?>">
+          <div class="form-hint">Pisahkan dengan koma jika lebih dari satu. IP ini akan dirouting agar bisa diakses dari cabang lain.</div>
         </div>
 
         <div class="form-group">

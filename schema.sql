@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `routers` (
     `public_key`  VARCHAR(255) NOT NULL,
     `private_key` VARCHAR(255) NOT NULL,
     `tunnel_ip`   VARCHAR(20)  NOT NULL,
+    `lan_subnets` TEXT         DEFAULT NULL,
     `notes`       TEXT         DEFAULT NULL,
     `created_at`  DATETIME     DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),

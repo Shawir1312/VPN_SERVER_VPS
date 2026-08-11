@@ -18,13 +18,39 @@ if (!$router) {
 
 $endpointHost = explode(':', WG_SERVER_ENDPOINT)[0];
 
+// Ambil subnet LAN milik router ini
+$myLanSubnets = array_filter(array_map('trim', explode(',', $router['lan_subnets'] ?? '')));
+
+// Ambil semua subnet LAN dari router LAIN
+$stmtAll = $pdo->prepare('SELECT id, tunnel_ip, lan_subnets FROM routers WHERE id != ?');
+$stmtAll->execute([$id]);
+$otherRouters = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+
+$allowedAddressList = ['10.66.66.0/24'];
+$routeCommands = [];
+
+foreach ($otherRouters as $or) {
+    if (!empty($or['lan_subnets'])) {
+        $lans = array_filter(array_map('trim', explode(',', $or['lan_subnets'])));
+        foreach ($lans as $lan) {
+            $allowedAddressList[] = $lan;
+            $routeCommands[] = "add dst-address={$lan} gateway=wg-to-hub";
+        }
+    }
+}
+$allowedAddressStr = implode(',', $allowedAddressList);
+
 $routerOsConfig = "/interface wireguard\n"
     . "add name=wg-to-hub listen-port=13231 private-key=\"{$router['private_key']}\"\n\n"
     . "/ip address\n"
     . "add address={$router['tunnel_ip']}/24 interface=wg-to-hub\n\n"
     . "/interface wireguard peers\n"
     . "add interface=wg-to-hub public-key=\"" . WG_SERVER_PUBKEY . "\" endpoint-address={$endpointHost} "
-    . "endpoint-port=51820 allowed-address=10.0.0.0/24 persistent-keepalive=25s";
+    . "endpoint-port=51820 allowed-address={$allowedAddressStr} persistent-keepalive=25s";
+
+if (!empty($routeCommands)) {
+    $routerOsConfig .= "\n\n/ip route\n" . implode("\n", $routeCommands);
+}
 
 $pageTitle = 'Config — ' . $router['name'];
 $activeNav = 'dashboard';
