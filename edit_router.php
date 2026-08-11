@@ -57,8 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success = 'Data router berhasil diperbarui! Jika kamu mengubah IP Lokal, pastikan cek config baru di halaman Config.';
             
             // Refresh data
-            $stmt->execute([$id]);
-            $router = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmtSelect = $pdo->prepare('SELECT * FROM routers WHERE id = ?');
+            $stmtSelect->execute([$id]);
+            $router = $stmtSelect->fetch(PDO::FETCH_ASSOC);
 
         } catch (Exception $e) {
             $error = $e->getMessage();
