@@ -29,6 +29,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             add_peer_to_server($keypair['public'], $allowedIps);
 
+            // Tambahkan rute ke kernel VPS agar paket diteruskan ke wg0
+            if ($lan_subnets !== '') {
+                $lans = array_filter(array_map('trim', explode(',', $lan_subnets)));
+                foreach ($lans as $lan) {
+                    cmd_exec('sudo ip route replace ' . escapeshellarg($lan) . ' dev ' . escapeshellarg(WG_INTERFACE), $out, $code);
+                }
+            }
+
             $stmt = $pdo->prepare(
                 'INSERT INTO routers (name, location, public_key, private_key, tunnel_ip, lan_subnets, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
             );
