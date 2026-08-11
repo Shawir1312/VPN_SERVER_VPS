@@ -1,25 +1,34 @@
-CREATE TABLE IF NOT EXISTS routers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    location TEXT,
-    public_key TEXT NOT NULL UNIQUE,
-    private_key TEXT NOT NULL,
-    tunnel_ip TEXT NOT NULL UNIQUE,
-    notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+-- ============================================================
+-- Interkonek — MySQL Schema
+-- ============================================================
 
-CREATE TABLE IF NOT EXISTS logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    event TEXT NOT NULL,
-    router_id INTEGER,
-    router_name TEXT,
-    details TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE IF NOT EXISTS `routers` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name`        VARCHAR(100) NOT NULL,
+    `location`    VARCHAR(150) DEFAULT NULL,
+    `public_key`  VARCHAR(255) NOT NULL,
+    `private_key` VARCHAR(255) NOT NULL,
+    `tunnel_ip`   VARCHAR(20)  NOT NULL,
+    `notes`       TEXT         DEFAULT NULL,
+    `created_at`  DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_public_key` (`public_key`),
+    UNIQUE KEY `uq_tunnel_ip`  (`tunnel_ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE IF NOT EXISTS `logs` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `event`       VARCHAR(100) NOT NULL,
+    `router_id`   INT UNSIGNED DEFAULT NULL,
+    `router_name` VARCHAR(100) DEFAULT NULL,
+    `details`     TEXT         DEFAULT NULL,
+    `created_at`  DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `settings` (
+    `key`        VARCHAR(100) NOT NULL,
+    `value`      TEXT         NOT NULL,
+    `updated_at` DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
