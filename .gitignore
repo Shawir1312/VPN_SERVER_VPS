@@ -1,0 +1,22 @@
+# Database SQLite — jangan di-commit, ada di server
+data/
+*.db
+*.sqlite
+
+# Config dengan credential dan secret — jangan di-commit!
+# Gunakan includes/config.example.php sebagai template
+# includes/config.php
+
+# Jika pakai config.php khusus server (opsional):
+# includes/config.local.php
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# Log
+*.log
