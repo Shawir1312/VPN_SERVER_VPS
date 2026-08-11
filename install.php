@@ -4,16 +4,19 @@
  * Jalankan sekali untuk setup aplikasi. Setelah selesai, file ini dikunci.
  */
 
-define('LOCK_FILE',    __DIR__ . '/data/.installed');
+define('LOCK_FILE',    __DIR__ . '/.installed');
 define('CONFIG_FILE',  __DIR__ . '/includes/config.php');
 define('SCHEMA_FILE',  __DIR__ . '/schema.sql');
 define('APP_VERSION',  '2.0.0');
 
+session_start();
+
 // ======================== LOCK CHECK ========================
 if (file_exists(LOCK_FILE)) {
-    // Izinkan akses ulang dengan token khusus (untuk reset)
     if (($_GET['reset'] ?? '') !== 'yes_reset_interkonek') {
-        die(render_locked());
+        // Redirect ke dashboard jika sudah terinstall
+        header('Location: index.php');
+        exit;
     }
 }
 
@@ -85,19 +88,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
         }
 
         if (empty($errors)) {
-            // Buat lock file
-            @mkdir(dirname(LOCK_FILE), 0770, true);
+            // Buat lock file di root folder
             @file_put_contents(LOCK_FILE, date('Y-m-d H:i:s') . "\n");
             $success = true;
-            $step = 3;
+            $step    = 3;
         }
 
-    // Handle fallback manual copy
-    if (count($errors) === 1 && $errors[0] === '__MANUAL_COPY__') {
-        $step = 3;
-        $success = false;
-    }
-    }
+        // Handle fallback: config tidak bisa ditulis otomatis
+        if (count($errors) === 1 && $errors[0] === '__MANUAL_COPY__') {
+            $step    = 3;
+            $success = false;
+        }
 }
 
 // ======================== FUNGSI ========================
