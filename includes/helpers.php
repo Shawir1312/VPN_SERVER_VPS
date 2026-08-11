@@ -37,17 +37,7 @@ function generate_wg_keypair(): array {
     if (empty($private)) {
         throw new RuntimeException('Gagal menjalankan `wg genkey`. Pastikan WireGuard tools terinstall di server.');
     }
-    $descriptors = [
-        0 => ['pipe', 'r'],
-        1 => ['pipe', 'w'],
-    ];
-    $process = proc_open('wg pubkey', $descriptors, $pipes);
-    fwrite($pipes[0], $private);
-    fclose($pipes[0]);
-    $public = trim(stream_get_contents($pipes[1]));
-    fclose($pipes[1]);
-    proc_close($process);
-
+    $public = trim(cmd_shell_exec('echo ' . escapeshellarg($private) . ' | wg pubkey'));
     return ['private' => $private, 'public' => $public];
 }
 
