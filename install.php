@@ -382,21 +382,32 @@ code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:rgba(255
   </a>
 </div>
 
+<?php elseif ($step === 3 && !$success && in_array('__MANUAL_COPY__', $errors)): ?>
+<!-- ========== LANGKAH 3: MANUAL COPY ========== -->
+<div style="text-align:left;padding:10px 0">
+  <div class="card-title"><span>⚠️</span> Konfigurasi Manual Diperlukan</div>
+  <p style="color:var(--muted);font-size:13.5px;margin-bottom:20px">
+    Tabel database berhasil dibuat, tapi file <code>config.php</code> tidak bisa ditulis karena masalah permission.
+  </p>
+
+  <div class="alert warning" style="flex-direction:column;gap:8px">
+    <div style="font-size:13px">1. Buat file baru di <code>includes/config.php</code> via File Manager aaPanel.</div>
+    <div style="font-size:13px">2. Copy dan paste semua kode di bawah ini ke dalam file tersebut:</div>
+    <pre style="background:#060a0f;padding:12px;border-radius:6px;font-size:11px;overflow-x:auto;color:#a0d4ff;max-height:250px;overflow-y:auto;user-select:all"><?= htmlspecialchars($_SESSION['fallback_config'] ?? '') ?></pre>
+  </div>
+
+  <div style="margin-top:20px;text-align:center">
+    <div style="font-size:13px;margin-bottom:12px;color:var(--muted)">Sudah membuat filenya?</div>
+    <a href="index.php" class="btn btn-success" style="font-size:15px;padding:12px 28px">🚀 Buka Dashboard →</a>
+  </div>
+</div>
+
 <?php elseif ($step === 2): ?>
 <!-- ========== LANGKAH 2: KONFIGURASI ========== -->
 <div class="card-title"><span>⚙️</span> Konfigurasi Instalasi</div>
 
 <?php foreach ($errors as $e): ?>
-<?php if ($e === '__MANUAL_COPY__'): ?>
-<div class="alert warning" style="flex-direction:column;gap:8px">
-  <div style="display:flex;gap:8px;align-items:center"><span class="alert-icon">⚠️</span><strong>Tidak bisa tulis config.php otomatis.</strong></div>
-  <div style="font-size:12.5px">Salin isi berikut dan simpan secara manual ke <code>includes/config.php</code> via aaPanel File Manager:</div>
-  <pre style="background:#060a0f;padding:12px;border-radius:6px;font-size:11px;overflow-x:auto;color:#a0d4ff;max-height:200px;overflow-y:auto"><?= htmlspecialchars($_SESSION['fallback_config'] ?? '') ?></pre>
-  <div style="font-size:12px">Atau jalankan di terminal VPS:<br><code>chmod 777 includes/ && php install.php</code></div>
-</div>
-<?php else: ?>
 <div class="alert error"><span class="alert-icon">❌</span> <?= htmlspecialchars($e) ?></div>
-<?php endif; ?>
 <?php endforeach; ?>
 
 <form method="POST" id="installForm">
