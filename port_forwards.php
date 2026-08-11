@@ -33,7 +33,7 @@ if ($action === 'add') {
         // Aplikasikan rule iptables
         add_port_forward($publicPort, $router['tunnel_ip'], $targetPort, $protocol);
         
-        log_event($pdo, 'PORT_FORWARD_ADD', $routerId, $router['name'], "Port $publicPort ($protocol) diarahkan ke $targetPort");
+        write_log($pdo, 'PORT_FORWARD_ADD', $routerId, $router['name'], "Port $publicPort ($protocol) diarahkan ke $targetPort");
         
     } catch (Exception $e) {
         die("Error: " . $e->getMessage());
@@ -57,7 +57,7 @@ if ($action === 'delete') {
             $stmt = $pdo->prepare("DELETE FROM port_forwards WHERE id = ?");
             $stmt->execute([$id]);
             
-            log_event($pdo, 'PORT_FORWARD_DEL', $pf['router_id'], $pf['name'], "Menghapus forward port {$pf['public_port']} ({$pf['protocol']})");
+            write_log($pdo, 'PORT_FORWARD_DEL', $pf['router_id'], $pf['name'], "Menghapus forward port {$pf['public_port']} ({$pf['protocol']})");
         }
     } catch (Exception $e) {
         die("Error: " . $e->getMessage());
@@ -70,7 +70,7 @@ if ($action === 'delete') {
 if ($action === 'sync') {
     try {
         sync_all_port_forwards($pdo);
-        log_event($pdo, 'PORT_FORWARD_SYNC', null, 'System', 'Sinkronisasi ulang semua rule iptables');
+        write_log($pdo, 'PORT_FORWARD_SYNC', null, 'System', 'Sinkronisasi ulang semua rule iptables');
     } catch (Exception $e) {
         die("Error: " . $e->getMessage());
     }
