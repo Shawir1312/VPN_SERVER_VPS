@@ -7,10 +7,10 @@ define('DB_PATH', __DIR__ . '/../data/interkonek.db');
 // ============================================================
 // KONFIGURASI WIREGUARD SERVER
 // ============================================================
-define('WG_SERVER_ADDR',     '10.0.0.1');
-define('WG_SUBNET_PREFIX',   '10.0.0.');
+define('WG_SERVER_ADDR',     '10.66.66.1');
+define('WG_SUBNET_PREFIX',   '10.66.66.');
 define('WG_SUBNET_CIDR',     '/32');
-define('WG_SERVER_PUBKEY',   'Bg8/FnvJwtP3fi6r9x1So7fbfVPo4JL2QUPlhtnOswI=');
+define('WG_SERVER_PUBKEY',   'ISI_DENGAN_PUBLIC_KEY_SERVER');
 define('WG_SERVER_ENDPOINT', '202.10.48.191:51820');
 define('WG_INTERFACE',       'wg0');
 
