@@ -40,6 +40,10 @@ $activeNav  = $activeNav  ?? 'dashboard';
       </a>
 
       <div class="nav-section-title">Sistem</div>
+      <a href="<?= $assetBase ?? '' ?>pages/port_forwarding.php"
+         class="nav-item <?= $activeNav === 'port_forward' ? 'active' : '' ?>">
+        <span class="nav-icon">📡</span> Port Forwarding
+      </a>
       <a href="<?= $assetBase ?? '' ?>pages/logs.php"
          class="nav-item <?= $activeNav === 'logs' ? 'active' : '' ?>">
         <span class="nav-icon">📋</span> Log Aktivitas

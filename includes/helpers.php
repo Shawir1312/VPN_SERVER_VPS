@@ -174,3 +174,68 @@ function format_relative_time(?int $timestamp): string {
     if ($diff < 86400) return floor($diff / 3600) . ' jam lalu';
     return floor($diff / 86400) . ' hari lalu';
 }
+
+/**
+ * Tambah iptables port forwarding dari public VPS ke tunnel IP
+ */
+function add_port_forward(int $publicPort, string $tunnelIp, int $targetPort, string $protocol = 'tcp'): void {
+    $protocol = strtolower($protocol) === 'udp' ? 'udp' : 'tcp';
+    
+    // Buka port di firewall (INPUT)
+    $cmdInput = sprintf(
+        'sudo iptables -I INPUT -p %s --dport %d -j ACCEPT',
+        $protocol, $publicPort
+    );
+    cmd_exec($cmdInput, $out, $code);
+
+    // PREROUTING: arahkan port publik ke IP tunnel
+    $cmdPre = sprintf(
+        'sudo iptables -t nat -A PREROUTING -p %s --dport %d -j DNAT --to-destination %s:%d',
+        $protocol, $publicPort, escapeshellarg($tunnelIp), $targetPort
+    );
+    cmd_exec($cmdPre, $out, $code);
+    
+    // POSTROUTING: masquerade
+    $cmdPost = sprintf(
+        'sudo iptables -t nat -A POSTROUTING -p %s -d %s --dport %d -j MASQUERADE',
+        $protocol, escapeshellarg($tunnelIp), $targetPort
+    );
+    cmd_exec($cmdPost, $out, $code);
+}
+
+/**
+ * Hapus iptables port forwarding
+ */
+function remove_port_forward(int $publicPort, string $tunnelIp, int $targetPort, string $protocol = 'tcp'): void {
+    $protocol = strtolower($protocol) === 'udp' ? 'udp' : 'tcp';
+    
+    $cmdInput = sprintf(
+        'sudo iptables -D INPUT -p %s --dport %d -j ACCEPT',
+        $protocol, $publicPort
+    );
+    cmd_exec($cmdInput, $out, $code);
+
+    $cmdPre = sprintf(
+        'sudo iptables -t nat -D PREROUTING -p %s --dport %d -j DNAT --to-destination %s:%d',
+        $protocol, $publicPort, escapeshellarg($tunnelIp), $targetPort
+    );
+    cmd_exec($cmdPre, $out, $code);
+    
+    $cmdPost = sprintf(
+        'sudo iptables -t nat -D POSTROUTING -p %s -d %s --dport %d -j MASQUERADE',
+        $protocol, escapeshellarg($tunnelIp), $targetPort
+    );
+    cmd_exec($cmdPost, $out, $code);
+}
+
+/**
+ * Sinkronisasi semua aturan port forwarding dari DB (panggil saat startup atau sync manual)
+ */
+function sync_all_port_forwards(PDO $pdo): void {
+    $stmt = $pdo->query("SELECT pf.*, r.tunnel_ip FROM port_forwards pf JOIN routers r ON pf.router_id = r.id");
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        // Hapus (ignore error jika tidak ada) lalu pasang lagi untuk menghindari duplikasi
+        remove_port_forward((int)$row['public_port'], $row['tunnel_ip'], (int)$row['target_port'], $row['protocol']);
+        add_port_forward((int)$row['public_port'], $row['tunnel_ip'], (int)$row['target_port'], $row['protocol']);
+    }
+}

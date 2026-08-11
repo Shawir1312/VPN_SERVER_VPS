@@ -32,3 +32,15 @@ CREATE TABLE IF NOT EXISTS `settings` (
     `updated_at` DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `port_forwards` (
+    `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `router_id`    INT UNSIGNED NOT NULL,
+    `public_port`  INT UNSIGNED NOT NULL,
+    `target_port`  INT UNSIGNED NOT NULL,
+    `protocol`     VARCHAR(10)  NOT NULL DEFAULT 'tcp',
+    `created_at`   DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_public_port_protocol` (`public_port`, `protocol`),
+    CONSTRAINT `fk_router_id` FOREIGN KEY (`router_id`) REFERENCES `routers` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
