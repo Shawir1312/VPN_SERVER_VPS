@@ -93,21 +93,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
 
 // ======================== FUNGSI ========================
 function run_system_checks(): array {
-    // Cek WireGuard — tanpa shell_exec, cukup cek file exists
-    $wgOk   = file_exists('/usr/bin/wg') || file_exists('/usr/local/bin/wg');
-    $pubkey = '';
-    if (file_exists('/etc/wireguard/server_public.key')) {
-        $pubkey = trim(file_get_contents('/etc/wireguard/server_public.key'));
-    }
+    // WireGuard: tidak bisa cek binary karena open_basedir aaPanel
+    // User input public key secara manual di form konfigurasi
+    $wgOk   = true; // anggap OK, warning saja
+    $pubkey = '';   // tidak bisa baca /etc/wireguard/ — user isi manual
 
-    // Deteksi IP publik dari koneksi ke luar (tanpa shell)
+    // Deteksi IP publik dari koneksi keluar
     $ip = '';
     try {
         $sock = @fsockopen('8.8.8.8', 80, $errno, $errstr, 2);
         if ($sock) {
             $ip = stream_socket_get_name($sock, false);
             fclose($sock);
-            $ip = explode(':', $ip)[0]; // ambil IP saja
+            $ip = explode(':', $ip)[0];
         }
     } catch (Exception $e) { $ip = ''; }
 
@@ -501,11 +499,13 @@ code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:rgba(255
   </div>
 
   <div class="check-item">
-    <div class="check-icon <?= $checks['wireguard'] ? 'ok' : 'warn' ?>"><?= $checks['wireguard'] ? '✓' : '!' ?></div>
+    <div class="check-icon warn">!</div>
     <div>
       <div class="check-label">WireGuard Tools</div>
       <div class="check-detail">
-        <?= $checks['wireguard'] ? 'Terinstall ✅' : '⚠️ Install: <code>apt install wireguard-tools</code> (bisa install setelah setup)' ?>
+        ⚠️ Tidak bisa dicek otomatis (dibatasi aaPanel open_basedir).<br>
+        Pastikan WireGuard sudah terinstall di server: <code>apt install wireguard-tools</code><br>
+        Public key akan diisi manual di langkah berikutnya.
       </div>
     </div>
   </div>
