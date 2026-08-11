@@ -76,18 +76,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
                 $authUser, $authPass
             );
 
-            if (file_put_contents(CONFIG_FILE, $configContent) === false) {
-                $errors[] = 'Gagal menulis includes/config.php. Pastikan folder writable.';
+            $writeOk = @file_put_contents(CONFIG_FILE, $configContent);
+            if ($writeOk === false) {
+                // Tidak bisa tulis otomatis — tampilkan config untuk copy manual
+                $_SESSION['fallback_config'] = $configContent;
+                $errors[] = '__MANUAL_COPY__';
             }
         }
 
         if (empty($errors)) {
             // Buat lock file
             @mkdir(dirname(LOCK_FILE), 0770, true);
-            file_put_contents(LOCK_FILE, date('Y-m-d H:i:s') . "\n");
+            @file_put_contents(LOCK_FILE, date('Y-m-d H:i:s') . "\n");
             $success = true;
             $step = 3;
         }
+
+    // Handle fallback manual copy
+    if (count($errors) === 1 && $errors[0] === '__MANUAL_COPY__') {
+        $step = 3;
+        $success = false;
+    }
     }
 }
 
@@ -376,7 +385,16 @@ code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:rgba(255
 <div class="card-title"><span>⚙️</span> Konfigurasi Instalasi</div>
 
 <?php foreach ($errors as $e): ?>
+<?php if ($e === '__MANUAL_COPY__'): ?>
+<div class="alert warning" style="flex-direction:column;gap:8px">
+  <div style="display:flex;gap:8px;align-items:center"><span class="alert-icon">⚠️</span><strong>Tidak bisa tulis config.php otomatis.</strong></div>
+  <div style="font-size:12.5px">Salin isi berikut dan simpan secara manual ke <code>includes/config.php</code> via aaPanel File Manager:</div>
+  <pre style="background:#060a0f;padding:12px;border-radius:6px;font-size:11px;overflow-x:auto;color:#a0d4ff;max-height:200px;overflow-y:auto"><?= htmlspecialchars($_SESSION['fallback_config'] ?? '') ?></pre>
+  <div style="font-size:12px">Atau jalankan di terminal VPS:<br><code>chmod 777 includes/ && php install.php</code></div>
+</div>
+<?php else: ?>
 <div class="alert error"><span class="alert-icon">❌</span> <?= htmlspecialchars($e) ?></div>
+<?php endif; ?>
 <?php endforeach; ?>
 
 <form method="POST" id="installForm">
@@ -511,11 +529,11 @@ code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:rgba(255
   </div>
 
   <div class="check-item">
-    <div class="check-icon <?= $checks['writable'] ? 'ok' : 'fail' ?>"><?= $checks['writable'] ? '✓' : '✗' ?></div>
+    <div class="check-icon <?= $checks['writable'] ? 'ok' : 'warn' ?>"><?= $checks['writable'] ? '✓' : '!' ?></div>
     <div>
       <div class="check-label">Folder <code>includes/</code> Writable</div>
       <div class="check-detail">
-        <?= $checks['writable'] ? 'Bisa ditulis ✅' : '❌ Jalankan: <code>chmod 775 includes/</code>' ?>
+        <?= $checks['writable'] ? 'Bisa ditulis ✅' : '⚠️ Jalankan: <code>chmod 777 includes/</code> &nbsp;(atau config akan ditampilkan untuk copy manual)' ?>
       </div>
     </div>
   </div>
@@ -531,7 +549,7 @@ code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:rgba(255
   </div>
 </div>
 
-<?php if (!$checks['php_version'] || !$checks['pdo_mysql'] || !$checks['writable']): ?>
+<?php if (!$checks['php_version'] || !$checks['pdo_mysql']): ?>
   <div class="alert error">
     <span class="alert-icon">❌</span>
     <div>Beberapa kebutuhan sistem tidak terpenuhi. Perbaiki dulu sebelum melanjutkan.</div>
