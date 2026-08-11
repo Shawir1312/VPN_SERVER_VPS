@@ -1,12 +1,39 @@
 <?php
 require_once __DIR__ . '/config.php';
 
+// ============================================================
+// FUNGSI BANTUAN
+// ============================================================
+
+function cmd_shell_exec(string $cmd): string {
+    if (function_exists('shell_exec')) {
+        return (string) shell_exec($cmd);
+    } elseif (function_exists('exec')) {
+        exec($cmd, $out);
+        return implode("\n", $out);
+    }
+    throw new RuntimeException("⚠️ ERROR AAPANEL: Fungsi shell_exec dinonaktifkan.\nCara fix: Buka aaPanel -> App Store -> PHP -> Setting -> Disabled functions -> hapus 'shell_exec' dan 'exec' dari daftar -> Save -> Restart PHP.");
+}
+
+function cmd_exec(string $cmd, &$output, &$exitCode): void {
+    if (function_exists('exec')) {
+        exec($cmd, $output, $exitCode);
+        return;
+    } elseif (function_exists('shell_exec')) {
+        $res = shell_exec($cmd);
+        $output = explode("\n", trim($res ?? ''));
+        $exitCode = 0;
+        return;
+    }
+    throw new RuntimeException("⚠️ ERROR AAPANEL: Fungsi exec dinonaktifkan.\nCara fix: Buka aaPanel -> App Store -> PHP -> Setting -> Disabled functions -> hapus 'shell_exec' dan 'exec' dari daftar -> Save -> Restart PHP.");
+}
+
 /**
  * Generate WireGuard keypair baru pakai binary `wg`.
  * Return: ['private' => ..., 'public' => ...]
  */
 function generate_wg_keypair(): array {
-    $private = trim(shell_exec('wg genkey'));
+    $private = trim(cmd_shell_exec('wg genkey'));
     if (empty($private)) {
         throw new RuntimeException('Gagal menjalankan `wg genkey`. Pastikan WireGuard tools terinstall di server.');
     }
@@ -51,7 +78,7 @@ function add_peer_to_server(string $publicKey, string $tunnelIp): void {
         escapeshellarg($publicKey),
         escapeshellarg($tunnelIp . '/32')
     );
-    exec($cmd, $output, $exitCode);
+    cmd_exec($cmd, $output, $exitCode);
     if ($exitCode !== 0) {
         throw new RuntimeException('Gagal menambahkan peer ke server: ' . implode("\n", $output));
     }
@@ -62,7 +89,7 @@ function add_peer_to_server(string $publicKey, string $tunnelIp): void {
  */
 function remove_peer_from_server(string $publicKey): void {
     $cmd = sprintf('sudo /usr/local/bin/wg-remove-peer.sh %s 2>&1', escapeshellarg($publicKey));
-    exec($cmd, $output, $exitCode);
+    cmd_exec($cmd, $output, $exitCode);
     if ($exitCode !== 0) {
         throw new RuntimeException('Gagal menghapus peer dari server: ' . implode("\n", $output));
     }
@@ -73,7 +100,11 @@ function remove_peer_from_server(string $publicKey): void {
  * Return array asosiatif keyed by public_key.
  */
 function get_wg_peer_status(): array {
-    $output = shell_exec('sudo wg show ' . WG_INTERFACE . ' dump 2>/dev/null');
+    try {
+        $output = cmd_shell_exec('sudo wg show ' . WG_INTERFACE . ' dump 2>/dev/null');
+    } catch (Exception $e) {
+        return []; // Jangan crash halaman utama, biarkan kosong
+    }
     if (!$output) {
         return [];
     }
@@ -112,7 +143,11 @@ function ping_router(string $tunnelIp): array {
         return ['success' => false, 'output' => 'IP tidak valid.'];
     }
     $cmd = sprintf('ping -c 3 -W 2 %s 2>&1', escapeshellarg($ip));
-    $output = shell_exec($cmd);
+    try {
+        $output = cmd_shell_exec($cmd);
+    } catch (Exception $e) {
+        return ['success' => false, 'output' => $e->getMessage()];
+    }
     $success = strpos($output ?? '', ' 0% packet loss') !== false;
     return ['success' => $success, 'output' => $output ?? 'Tidak ada output.'];
 }
