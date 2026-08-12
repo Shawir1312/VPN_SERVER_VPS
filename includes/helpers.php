@@ -234,8 +234,9 @@ function remove_port_forward(int $publicPort, string $tunnelIp, int $targetPort,
 function sync_all_port_forwards(PDO $pdo): void {
     $stmt = $pdo->query("SELECT pf.*, r.tunnel_ip FROM port_forwards pf JOIN routers r ON pf.router_id = r.id");
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $finalTargetIp = !empty($row['target_ip']) ? $row['target_ip'] : $row['tunnel_ip'];
         // Hapus (ignore error jika tidak ada) lalu pasang lagi untuk menghindari duplikasi
-        remove_port_forward((int)$row['public_port'], $row['tunnel_ip'], (int)$row['target_port'], $row['protocol']);
-        add_port_forward((int)$row['public_port'], $row['tunnel_ip'], (int)$row['target_port'], $row['protocol']);
+        remove_port_forward((int)$row['public_port'], $finalTargetIp, (int)$row['target_port'], $row['protocol']);
+        add_port_forward((int)$row['public_port'], $finalTargetIp, (int)$row['target_port'], $row['protocol']);
     }
 }

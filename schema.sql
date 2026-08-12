@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS `port_forwards` (
     `router_id`    INT UNSIGNED NOT NULL,
     `public_port`  INT UNSIGNED NOT NULL,
     `target_port`  INT UNSIGNED NOT NULL,
+    `target_ip`    VARCHAR(20)  DEFAULT NULL,
     `protocol`     VARCHAR(10)  NOT NULL DEFAULT 'tcp',
     `created_at`   DATETIME     DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),

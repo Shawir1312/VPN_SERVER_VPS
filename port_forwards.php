@@ -5,12 +5,20 @@ require_once __DIR__ . '/includes/helpers.php';
 require_login();
 $pdo = get_db();
 
+// Auto-migrate tabel jika belum ada kolom target_ip (untuk update dari versi lama)
+try {
+    $pdo->exec("ALTER TABLE port_forwards ADD COLUMN target_ip VARCHAR(20) DEFAULT NULL");
+} catch (Exception $e) {
+    // Ignore error if column already exists
+}
+
 $action = $_POST['action'] ?? '';
 
 if ($action === 'add') {
     $routerId = (int)$_POST['router_id'];
     $publicPort = (int)$_POST['public_port'];
     $targetPort = (int)$_POST['target_port'];
+    $targetIp = trim($_POST['target_ip'] ?? '');
     $protocol = strtolower($_POST['protocol']) === 'udp' ? 'udp' : 'tcp';
 
     if (!$routerId || !$publicPort || !$targetPort) {
@@ -26,14 +34,16 @@ if ($action === 'add') {
             die("Router tidak ditemukan.");
         }
 
+        $finalTargetIp = empty($targetIp) ? $router['tunnel_ip'] : $targetIp;
+
         // Insert ke DB
-        $stmt = $pdo->prepare("INSERT INTO port_forwards (router_id, public_port, target_port, protocol) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$routerId, $publicPort, $targetPort, $protocol]);
+        $stmt = $pdo->prepare("INSERT INTO port_forwards (router_id, public_port, target_port, target_ip, protocol) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$routerId, $publicPort, $targetPort, $targetIp, $protocol]);
         
         // Aplikasikan rule iptables
-        add_port_forward($publicPort, $router['tunnel_ip'], $targetPort, $protocol);
+        add_port_forward($publicPort, $finalTargetIp, $targetPort, $protocol);
         
-        write_log($pdo, 'PORT_FORWARD_ADD', $routerId, $router['name'], "Port $publicPort ($protocol) diarahkan ke $targetPort");
+        write_log($pdo, 'PORT_FORWARD_ADD', $routerId, $router['name'], "Port $publicPort ($protocol) diarahkan ke $finalTargetIp:$targetPort");
         
     } catch (Exception $e) {
         die("Error: " . $e->getMessage());
@@ -52,7 +62,8 @@ if ($action === 'delete') {
         $pf = $stmt->fetch();
 
         if ($pf) {
-            remove_port_forward((int)$pf['public_port'], $pf['tunnel_ip'], (int)$pf['target_port'], $pf['protocol']);
+            $finalTargetIp = !empty($pf['target_ip']) ? $pf['target_ip'] : $pf['tunnel_ip'];
+            remove_port_forward((int)$pf['public_port'], $finalTargetIp, (int)$pf['target_port'], $pf['protocol']);
             
             $stmt = $pdo->prepare("DELETE FROM port_forwards WHERE id = ?");
             $stmt->execute([$id]);

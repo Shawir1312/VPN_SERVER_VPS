@@ -50,12 +50,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 2) {
     if (empty($errors)) {
         // Tes koneksi DB
         try {
-            $dsn = "mysql:host={$dbHost};charset=utf8mb4";
+            // Coba koneksi langsung dengan dbname (berguna jika user tidak punya akses CREATE DATABASE)
+            $dsn = "mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4";
             $pdo = new PDO($dsn, $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-            $pdo->exec("USE `{$dbName}`");
         } catch (Exception $e) {
-            $errors[] = 'Koneksi database gagal: ' . $e->getMessage();
+            // Jika gagal, coba tanpa dbname lalu jalankan CREATE DATABASE
+            try {
+                $dsn = "mysql:host={$dbHost};charset=utf8mb4";
+                $pdo = new PDO($dsn, $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                $pdo->exec("USE `{$dbName}`");
+            } catch (Exception $ex) {
+                $errors[] = 'Koneksi database gagal: ' . $ex->getMessage();
+            }
         }
 
         if (empty($errors)) {
@@ -125,7 +132,7 @@ function run_system_checks(): array {
         'pdo_mysql'   => extension_loaded('pdo_mysql'),
         'wireguard'   => $wgOk,
         'writable'    => is_writable(__DIR__ . '/includes') || is_writable(CONFIG_FILE),
-        'data_dir'    => is_dir(__DIR__ . '/data') && is_writable(__DIR__ . '/data'),
+        'data_dir'    => true, // Tidak dipakai lagi untuk MySQL, tapi dibiarkan true agar kompatibel dengan var $checks
         'wg_pubkey'   => $pubkey,
         'server_ip'   => $ip,
     ];
@@ -551,15 +558,6 @@ code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:rgba(255
     </div>
   </div>
 
-  <div class="check-item">
-    <div class="check-icon <?= $checks['data_dir'] ? 'ok' : 'warn' ?>"><?= $checks['data_dir'] ? '✓' : '!' ?></div>
-    <div>
-      <div class="check-label">Folder <code>data/</code> Ada & Writable</div>
-      <div class="check-detail">
-        <?= $checks['data_dir'] ? 'Siap ✅' : '⚠️ Buat dengan: <code>mkdir -p data && chmod 770 data</code>' ?>
-      </div>
-    </div>
-  </div>
 </div>
 
 <?php if (!$checks['php_version'] || !$checks['pdo_mysql']): ?>
@@ -571,13 +569,6 @@ code{font-family:'JetBrains Mono',monospace;font-size:11.5px;background:rgba(255
     🔄 Cek Ulang
   </button>
 <?php else: ?>
-  <?php if (!$checks['data_dir']): ?>
-  <div class="alert warning">
-    <span class="alert-icon">⚠️</span>
-    Folder <code>data/</code> belum ada. Buat dulu: <code>mkdir -p data && chmod 770 data</code>
-    Atau installer akan mencoba membuatnya otomatis.
-  </div>
-  <?php endif; ?>
   <form method="POST">
     <input type="hidden" name="step" value="2">
     <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:14px;">

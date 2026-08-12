@@ -57,7 +57,14 @@ include __DIR__ . '/../includes/layout_header.php';
           </td>
           <td><span class="badge" style="text-transform:uppercase"><?= htmlspecialchars($pf['protocol']) ?></span></td>
           <td><strong><?= htmlspecialchars($pf['public_port']) ?></strong></td>
-          <td><strong><?= htmlspecialchars($pf['target_port']) ?></strong></td>
+          <td>
+            <strong><?= htmlspecialchars($pf['target_port']) ?></strong><br>
+            <?php if (!empty($pf['target_ip'])): ?>
+              <code style="font-size:11px;color:#4f8cff"><?= htmlspecialchars($pf['target_ip']) ?></code>
+            <?php else: ?>
+              <code style="font-size:11px;color:var(--muted)">IP Tunnel</code>
+            <?php endif; ?>
+          </td>
           <td style="color:var(--muted)"><?= htmlspecialchars($pf['created_at']) ?></td>
           <td>
             <form method="POST" action="../port_forwards.php" style="display:inline-block;">
@@ -114,6 +121,14 @@ include __DIR__ . '/../includes/layout_header.php';
         <label class="form-label">Port Target (Lokal) <span class="req">*</span></label>
         <input type="number" name="target_port" class="form-control mono" placeholder="Misal: 80" required min="1" max="65535">
         <div class="form-hint">Port asli pada MikroTik atau perangkat di jaringan lokalnya.</div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">IP Target (Opsional)</label>
+        <input type="text" name="target_ip" class="form-control mono" placeholder="Misal: 192.168.9.2">
+        <div class="form-hint">Kosongkan untuk mengarahkan ke IP Tunnel VPN (langsung ke MikroTik). Isi dengan IP lain jika ingin forward ke perangkat di dalam jaringan LAN (pastikan LAN Subnet sudah diset di pengaturan router).</div>
       </div>
     </div>
 
