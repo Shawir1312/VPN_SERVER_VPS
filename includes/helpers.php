@@ -66,7 +66,7 @@ function add_peer_to_server(string $publicKey, string $tunnelIp): void {
     $cmd = sprintf(
         'sudo /usr/local/bin/wg-add-peer.sh %s %s 2>&1',
         escapeshellarg($publicKey),
-        escapeshellarg($tunnelIp . '/32')
+        escapeshellarg($tunnelIp)
     );
     cmd_exec($cmd, $output, $exitCode);
     if ($exitCode !== 0) {
