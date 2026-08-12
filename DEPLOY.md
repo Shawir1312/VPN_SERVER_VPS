@@ -9,11 +9,9 @@ sudo apt update && sudo apt upgrade -y
 # 2. Install WireGuard + tools
 sudo apt install -y wireguard wireguard-tools
 
-# 3. Install PHP + SQLite
-sudo apt install -y php php-sqlite3 php-cli
-
-# 4. Install Nginx
-sudo apt install -y nginx
+# 3. Web Server & PHP
+# Sangat disarankan menginstal aaPanel (https://www.aapanel.com)
+# untuk manajemen database MySQL, PHP, dan Web Server (Nginx/Apache) dengan mudah.
 
 # 5. Install Git
 sudo apt install -y git
@@ -58,94 +56,51 @@ sudo wg show
 
 ## Deploy Aplikasi
 
-### 1. Clone dari GitHub
+### 1. Upload ke aaPanel
+
+1. Buka dashboard aaPanel.
+2. Buat **Website** baru (contoh: `vpn.domain.com`) dan buat database **MySQL**.
+3. Buka File Manager, masuk ke folder website Anda (misal: `/www/wwwroot/vpn.domain.com`).
+4. Upload file-file aplikasi Interkonek ini ke dalam folder tersebut.
+5. Akses domain website Anda di browser. Web Installer akan memandu Anda untuk mengisi kredensial database MySQL dan informasi WireGuard.
+
+### 2. Install Script Privileged (wg-add-peer, wg-remove-peer)
+
+Script ini dibutuhkan agar web PHP bisa menambah/menghapus peer WireGuard secara aman.
 
 ```bash
-cd /var/www
-sudo git clone https://github.com/USERNAME/interkonek-app.git interkonek
-sudo chown -R www-data:www-data /var/www/interkonek
-```
+# Pastikan Anda masuk SSH sebagai root
+# Ganti /www/wwwroot/vpn.domain.com dengan folder website Anda
+cd /www/wwwroot/vpn.domain.com
 
-### 2. Konfigurasi Aplikasi
-
-```bash
-# Salin template config
-sudo cp /var/www/interkonek/includes/config.example.php \
-        /var/www/interkonek/includes/config.php
-
-# Edit config dengan nilai yang benar
-sudo nano /var/www/interkonek/includes/config.php
-```
-
-Nilai yang perlu diisi di `config.php`:
-- `WG_SERVER_PUBKEY` → dari `cat /etc/wireguard/server_public.key`
-- `WG_SERVER_ENDPOINT` → IP publik VPS + port (misal `202.10.48.191:51820`)
-- `AUTH_PASSWORD` → password login dashboard yang aman
-
-### 3. Buat Folder Data
-
-```bash
-sudo mkdir -p /var/www/interkonek/data
-sudo chown www-data:www-data /var/www/interkonek/data
-sudo chmod 770 /var/www/interkonek/data
-```
-
-### 4. Install Script Privileged (wg-add-peer, wg-remove-peer)
-
-```bash
-# Salin scripts ke /usr/local/bin
-sudo cp /var/www/interkonek/scripts/wg-add-peer.sh   /usr/local/bin/
-sudo cp /var/www/interkonek/scripts/wg-remove-peer.sh /usr/local/bin/
+sudo cp scripts/wg-add-peer.sh /usr/local/bin/
+sudo cp scripts/wg-remove-peer.sh /usr/local/bin/
 sudo chmod +x /usr/local/bin/wg-add-peer.sh
 sudo chmod +x /usr/local/bin/wg-remove-peer.sh
 ```
 
-### 5. Setup Sudoers (izinkan www-data jalankan script WG tanpa password)
+### 3. Setup Sudoers (izinkan web server jalankan script WG)
 
+Buka konfigurasi sudoers:
 ```bash
 sudo visudo
 ```
 
-Tambahkan baris ini di bagian bawah:
+Tambahkan baris ini di bagian paling bawah. **Penting**: aaPanel menggunakan user `www` (bukan `www-data`):
 ```
-www-data ALL=(ALL) NOPASSWD: /usr/local/bin/wg-add-peer.sh
-www-data ALL=(ALL) NOPASSWD: /usr/local/bin/wg-remove-peer.sh
-www-data ALL=(ALL) NOPASSWD: /usr/bin/wg show wg0 dump
+www ALL=(ALL) NOPASSWD: /usr/local/bin/wg-add-peer.sh
+www ALL=(ALL) NOPASSWD: /usr/local/bin/wg-remove-peer.sh
+www ALL=(ALL) NOPASSWD: /usr/bin/wg show wg0 dump
 ```
 
-### 6. Konfigurasi Nginx
+### 4. Amankan URL (URL Rewrite)
 
-```bash
-sudo nano /etc/nginx/sites-available/interkonek
-```
+Agar file script dan `.git` tidak bisa di-download oleh publik, tambahkan baris berikut di menu **URL rewrite** pada pengaturan Website di aaPanel Anda:
 
 ```nginx
-server {
-    listen 80;
-    server_name YOUR_DOMAIN_OR_IP;
-
-    root /var/www/interkonek;
-    index index.php;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
-    }
-
-    # Blokir akses ke file sensitif
-    location ~ /\.(git|env|gitignore) { deny all; }
-    location ~ /data/ { deny all; }
-    location ~ /scripts/ { deny all; }
-}
-```
-
-```bash
-sudo ln -s /etc/nginx/sites-available/interkonek /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
+# Blokir akses ke file sensitif
+location ~ /\.(git|env|gitignore) { deny all; }
+location ~ ^/scripts/ { deny all; }
 ```
 
 ---
@@ -158,7 +113,7 @@ sudo git pull origin main
 sudo chown -R www-data:www-data .
 ```
 
-> **⚠️ PENTING:** File `includes/config.php` dan folder `data/` tidak masuk git (ada di `.gitignore`).
+> **⚠️ PENTING:** File `includes/config.php` tidak masuk git (ada di `.gitignore`).
 > Jadi config dan database di VPS **tidak akan tertimpa** saat `git pull`.
 
 ---

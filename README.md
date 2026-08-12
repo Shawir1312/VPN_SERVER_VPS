@@ -105,80 +105,46 @@ interkonek-app/
 | OS VPS | Ubuntu 20.04 / 22.04 |
 | PHP | 7.4+ (dengan ekstensi `pdo_mysql`) |
 | WireGuard | Kernel 5.6+ / paket `wireguard-tools` |
-| Web Server | Nginx (rekomendasi) atau Apache |
+| Web Server | Nginx/Apache (via aaPanel direkomendasikan) |
 | RouterOS | v7+ (WireGuard native) |
 
 ---
 
 ## 🚀 Instalasi
 
-### 1. Clone Repository
+### 1. Upload ke aaPanel
+
+1. Buat Website baru di aaPanel (misal: `vpn.domain.com`) dengan database **MySQL**.
+2. Upload file repository ini ke direktori website Anda (misal: `/www/wwwroot/vpn.domain.com`).
+3. Jalankan `install.php` dari browser untuk memandu pembuatan konfigurasi `includes/config.php` dan tabel database otomatis.
+
+### 2. Install Script WireGuard + Sudoers
+
+Masuk ke terminal SSH aaPanel sebagai root:
 
 ```bash
-cd /var/www
-sudo git clone https://github.com/Shawir1312/VPN_SERVER_VPS.git interkonek
-sudo chown -R www-data:www-data /var/www/interkonek
+# Ubah path sesuai direktori website Anda
+cp /www/wwwroot/vpn.domain.com/scripts/wg-add-peer.sh /usr/local/bin/
+cp /www/wwwroot/vpn.domain.com/scripts/wg-remove-peer.sh /usr/local/bin/
+chmod +x /usr/local/bin/wg-add-peer.sh /usr/local/bin/wg-remove-peer.sh
 ```
 
-### 2. Setup Konfigurasi
-
-```bash
-sudo cp /var/www/interkonek/includes/config.example.php \
-        /var/www/interkonek/includes/config.php
-sudo nano /var/www/interkonek/includes/config.php
+Tambahkan ke sudoers (`visudo`):
 ```
-
-Nilai yang perlu diubah:
-
-```php
-define('WG_SERVER_PUBKEY',   'PUBLIC_KEY_DARI_SERVER');   // cat /etc/wireguard/server_public.key
-define('WG_SERVER_ENDPOINT', '202.x.x.x:51820');          // IP publik VPS:port
-define('AUTH_USERNAME',      'admin');                     // Username login
-define('AUTH_PASSWORD',      'password_aman_anda');        // Password login
+www ALL=(ALL) NOPASSWD: /usr/local/bin/wg-add-peer.sh
+www ALL=(ALL) NOPASSWD: /usr/local/bin/wg-remove-peer.sh
+www ALL=(ALL) NOPASSWD: /usr/bin/wg show wg0 dump
 ```
+*(Catatan: User default web server di aaPanel adalah `www`, bukan `www-data`)*
 
-### 3. Install Script WireGuard + Sudoers
+### 3. Keamanan di aaPanel
 
-```bash
-sudo cp /var/www/interkonek/scripts/wg-add-peer.sh   /usr/local/bin/
-sudo cp /var/www/interkonek/scripts/wg-remove-peer.sh /usr/local/bin/
-sudo chmod +x /usr/local/bin/wg-add-peer.sh /usr/local/bin/wg-remove-peer.sh
-```
-
-Tambahkan ke sudoers (`sudo visudo`):
-```
-www-data ALL=(ALL) NOPASSWD: /usr/local/bin/wg-add-peer.sh
-www-data ALL=(ALL) NOPASSWD: /usr/local/bin/wg-remove-peer.sh
-www-data ALL=(ALL) NOPASSWD: /usr/bin/wg show wg0 dump
-```
-
-### 4. Konfigurasi Nginx
+Buka pengaturan website di aaPanel -> menu **URL rewrite**:
 
 ```nginx
-server {
-    listen 80;
-    server_name YOUR_DOMAIN_OR_IP;
-    root /var/www/interkonek;
-    index index.php;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
-    }
-
-    # Blokir akses ke file sensitif
-    location ~ /\.(git|gitignore) { deny all; }
-    location ~ ^/scripts/   { deny all; }
-}
-```
-
-```bash
-sudo ln -s /etc/nginx/sites-available/interkonek /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
+# Blokir akses ke file sensitif dan folder script
+location ~ /\.(git|gitignore) { deny all; }
+location ~ ^/scripts/ { deny all; }
 ```
 
 > Panduan deploy lengkap (WireGuard server, firewall, dsb) lihat di **[DEPLOY.md](DEPLOY.md)**
