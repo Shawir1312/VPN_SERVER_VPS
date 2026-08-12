@@ -18,6 +18,7 @@ VPS bertindak sebagai **hub sentral** (WireGuard server), setiap MikroTik adalah
 | 🔍 **Detail Router** | Info lengkap: handshake, traffic, endpoint IP MikroTik |
 | 🏓 **Ping Test** | Ping IP tunnel router langsung dari VPS |
 | 🔌 **Test API Port** | Cek apakah port 8728 (API MikroTik) bisa diakses lewat tunnel |
+| 🚪 **Port Forwarding** | Teruskan port publik VPS ke perangkat lokal di belakang router (IP kustom) |
 | 📋 **Log Aktivitas** | Catat semua event: tambah router, hapus router, login |
 | ⚙️ **Pengaturan** | Edit konfigurasi WireGuard server & kredensial login via UI |
 | 🌙 **Dark Mode** | UI premium dengan sidebar, glassmorphism, animasi realtime |
@@ -38,7 +39,7 @@ Internet
 │  └────────────────────────┘  │
 │  ┌────────────────────────┐  │
 │  │  Dashboard Interkonek  │  │
-│  │  (PHP + SQLite)        │  │
+│  │  (PHP + MySQL)         │  │
 │  └────────────────────────┘  │
 └──────┬──────────┬────────────┘
        │          │  WireGuard Tunnel
@@ -90,7 +91,7 @@ interkonek-app/
 │   ├── wg-add-peer.sh           # Script privileged tambah peer WireGuard
 │   └── wg-remove-peer.sh        # Script privileged hapus peer WireGuard
 │
-├── schema.sql                   # Skema database SQLite
+├── schema.sql                   # Skema database MySQL
 ├── DEPLOY.md                    # Panduan deploy lengkap ke VPS
 └── .gitignore
 ```
@@ -102,7 +103,7 @@ interkonek-app/
 | Komponen | Versi |
 |----------|-------|
 | OS VPS | Ubuntu 20.04 / 22.04 |
-| PHP | 7.4+ (dengan ekstensi `sqlite3`) |
+| PHP | 7.4+ (dengan ekstensi `pdo_mysql`) |
 | WireGuard | Kernel 5.6+ / paket `wireguard-tools` |
 | Web Server | Nginx (rekomendasi) atau Apache |
 | RouterOS | v7+ (WireGuard native) |
@@ -136,15 +137,7 @@ define('AUTH_USERNAME',      'admin');                     // Username login
 define('AUTH_PASSWORD',      'password_aman_anda');        // Password login
 ```
 
-### 3. Buat Folder Database
-
-```bash
-sudo mkdir -p /var/www/interkonek/data
-sudo chown www-data:www-data /var/www/interkonek/data
-sudo chmod 770 /var/www/interkonek/data
-```
-
-### 4. Install Script WireGuard + Sudoers
+### 3. Install Script WireGuard + Sudoers
 
 ```bash
 sudo cp /var/www/interkonek/scripts/wg-add-peer.sh   /usr/local/bin/
@@ -159,7 +152,7 @@ www-data ALL=(ALL) NOPASSWD: /usr/local/bin/wg-remove-peer.sh
 www-data ALL=(ALL) NOPASSWD: /usr/bin/wg show wg0 dump
 ```
 
-### 5. Konfigurasi Nginx
+### 4. Konfigurasi Nginx
 
 ```nginx
 server {
@@ -179,7 +172,7 @@ server {
 
     # Blokir akses ke file sensitif
     location ~ /\.(git|gitignore) { deny all; }
-    location ~ ^/(data|scripts)/   { deny all; }
+    location ~ ^/scripts/   { deny all; }
 }
 ```
 
@@ -200,8 +193,8 @@ sudo git pull origin main
 sudo chown -R www-data:www-data .
 ```
 
-> ✅ File `includes/config.php` dan folder `data/` tidak masuk `.gitignore`,
-> sehingga konfigurasi dan database **tidak akan tertimpa** saat `git pull`.
+> ✅ File `includes/config.php` tidak masuk `.gitignore`,
+> sehingga konfigurasi **tidak akan tertimpa** saat `git pull`.
 
 ---
 
@@ -212,6 +205,7 @@ sudo chown -R www-data:www-data .
 | **Dashboard** | Stats cards (online/offline) + tabel router dengan status realtime |
 | **Tambah Router** | Form isian + auto-assign IP tunnel + generate keypair |
 | **Detail Router** | Info tunnel, ping test, test port API, config RouterOS |
+| **Port Forwarding** | Daftar port forward VPS -> Router beserta IP target |
 | **Log Aktivitas** | Riwayat semua event dengan timestamp |
 | **Pengaturan** | Edit endpoint WireGuard, IP hub, kredensial login |
 
@@ -221,8 +215,7 @@ sudo chown -R www-data:www-data .
 
 - ✅ Semua halaman dilindungi session login
 - ✅ `includes/config.php` di-exclude dari git (tidak ada credentials di repo)
-- ✅ Folder `data/` (database SQLite) di-exclude dari git
-- ✅ Nginx dikonfigurasi blokir akses ke `data/` dan `scripts/`
+- ✅ Nginx dikonfigurasi blokir akses ke `scripts/`
 - ✅ Input di-sanitasi dengan `htmlspecialchars()` dan `escapeshellarg()`
 - ⚠️ Disarankan menggunakan HTTPS (Let's Encrypt via Certbot) sebelum production
 
@@ -231,7 +224,7 @@ sudo chown -R www-data:www-data .
 ## 🛠 Tech Stack
 
 - **Backend**: PHP 8.x (vanilla, tanpa framework)
-- **Database**: SQLite 3 (via PDO)
+- **Database**: MySQL / MariaDB (via PDO)
 - **WireGuard**: `wg show` + shell scripts via `sudo`
 - **Frontend**: Vanilla JS + CSS (tanpa framework)
 - **Font**: Inter + JetBrains Mono (Google Fonts)
