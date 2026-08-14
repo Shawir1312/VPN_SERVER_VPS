@@ -90,7 +90,12 @@ Tambahkan baris ini di bagian paling bawah. **Penting**: aaPanel menggunakan use
 ```
 www ALL=(ALL) NOPASSWD: /usr/local/bin/wg-add-peer.sh
 www ALL=(ALL) NOPASSWD: /usr/local/bin/wg-remove-peer.sh
-www ALL=(ALL) NOPASSWD: /usr/bin/wg show wg0 dump
+www ALL=(ALL) NOPASSWD: /usr/bin/wg
+www ALL=(ALL) NOPASSWD: /usr/bin/wg-quick
+www ALL=(ALL) NOPASSWD: /usr/sbin/ip
+www ALL=(ALL) NOPASSWD: /sbin/ip
+www ALL=(ALL) NOPASSWD: /usr/sbin/iptables
+www ALL=(ALL) NOPASSWD: /sbin/iptables
 ```
 
 ### 4. Amankan URL (URL Rewrite)

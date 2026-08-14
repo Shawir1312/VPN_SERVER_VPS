@@ -22,6 +22,15 @@ if (!$router) {
 
 try {
     remove_peer_from_server($router['public_key']);
+    
+    // Hapus rute LAN jika ada
+    $lan_subnets = trim($router['lan_subnets'] ?? '');
+    if ($lan_subnets !== '') {
+        $lans = array_filter(array_map('trim', explode(',', $lan_subnets)));
+        foreach ($lans as $lan) {
+            cmd_exec('sudo ip route del ' . escapeshellarg($lan) . ' dev ' . escapeshellarg(WG_INTERFACE), $out, $code);
+        }
+    }
 } catch (Exception $e) {
     // Lanjutkan hapus dari DB meski script gagal
     // (misal peer sudah tidak ada di server)

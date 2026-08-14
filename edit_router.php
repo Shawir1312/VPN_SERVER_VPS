@@ -48,6 +48,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Untuk aaPanel / Debian, biasanya harus diedit manual atau pakai wg-quick save.
             cmd_exec('sudo wg-quick save ' . escapeshellarg(WG_INTERFACE), $out, $code);
 
+            // Hapus rute lama dari kernel VPS agar tidak nyangkut
+            $old_lan_subnets = trim($router['lan_subnets'] ?? '');
+            if ($old_lan_subnets !== '') {
+                $old_lans = array_filter(array_map('trim', explode(',', $old_lan_subnets)));
+                foreach ($old_lans as $lan) {
+                    cmd_exec('sudo ip route del ' . escapeshellarg($lan) . ' dev ' . escapeshellarg(WG_INTERFACE), $out, $code);
+                }
+            }
+
             // Tambahkan rute ke kernel VPS agar paket diteruskan ke wg0
             if ($lan_subnets !== '') {
                 $lans = array_filter(array_map('trim', explode(',', $lan_subnets)));
