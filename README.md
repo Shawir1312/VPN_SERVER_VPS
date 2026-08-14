@@ -133,7 +133,12 @@ Tambahkan ke sudoers (`visudo`):
 ```
 www ALL=(ALL) NOPASSWD: /usr/local/bin/wg-add-peer.sh
 www ALL=(ALL) NOPASSWD: /usr/local/bin/wg-remove-peer.sh
-www ALL=(ALL) NOPASSWD: /usr/bin/wg show wg0 dump
+www ALL=(ALL) NOPASSWD: /usr/bin/wg
+www ALL=(ALL) NOPASSWD: /usr/bin/wg-quick
+www ALL=(ALL) NOPASSWD: /usr/sbin/ip
+www ALL=(ALL) NOPASSWD: /sbin/ip
+www ALL=(ALL) NOPASSWD: /usr/sbin/iptables
+www ALL=(ALL) NOPASSWD: /sbin/iptables
 ```
 *(Catatan: User default web server di aaPanel adalah `www`, bukan `www-data`)*
 
